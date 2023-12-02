@@ -1,0 +1,14 @@
+<template>
+	<h1>Title</h1>
+	<c-lwc-datatable-header
+		onfilterapply={handleFilterApply}
+		onsearchkeychange={handleSearchKeyChange}
+	></c-lwc-datatable-header>
+	<c-lwc-datatable
+		key-field="id"
+		data={dataToDisplay}
+		columns={columnsToDisplay}>
+	></c-lwc-datatable>
+	<c-lwc-datatable-footer>
+	</c-lwc-datatable-footer>
+</template>
