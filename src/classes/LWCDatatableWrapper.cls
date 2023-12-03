@@ -1,7 +1,6 @@
 public with sharing class LWCDatatableWrapper {
 
-    @AuraEnabled
-    public static List<SObject> requestRecords(String objectApiName) {
+    public static List<SObject> getData(String objectApiName) {
 
         Map<String, Schema.SObjectType> GlobalDescribeMap = Schema.getGlobalDescribe();
         Schema.SObjectType SObjectTypeObj = GlobalDescribeMap.get(objectApiName);
@@ -20,12 +19,25 @@ public with sharing class LWCDatatableWrapper {
     }
 
     public static String getFieldSetName (String objectApiName) {
-        objectApiName = objectApiName.replace('__c', '');
-        return 'LWCDatatable'+objectApiName+'List';
+        try {
+            objectApiName = objectApiName.replace('__c', '');
+            final String fieldSetName = 'LWCDatatable'+objectApiName+'List';
+
+            Map<String, Schema.SObjectType> GlobalDescribeMap = Schema.getGlobalDescribe();
+            Schema.SObjectType SObjectTypeObj = GlobalDescribeMap.get(objectApiName);
+            Schema.DescribeSObjectResult DescribeSObjectResultObj = SObjectTypeObj.getDescribe();
+            Schema.FieldSet fieldSetObj = DescribeSObjectResultObj.fieldSets.getMap().get(fieldSetName);
+
+            if (fieldSetObj == null) {
+                throw new CustomException('No fieldset for ' + objectApiName + ' created (format LWCDatatable{objectApiName}List');
+            }
+            return fieldSetName;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
     }
 
-    @AuraEnabled
-    public static List<ColumnWrapper> requestColumns(String objectApiName) {
+    public static List<ColumnWrapper> getColumns(String objectApiName) {
         Map<String, Schema.SObjectType> GlobalDescribeMap = Schema.getGlobalDescribe();
         Schema.SObjectType SObjectTypeObj = GlobalDescribeMap.get(objectApiName);
         Schema.DescribeSObjectResult DescribeSObjectResultObj = SObjectTypeObj.getDescribe();
@@ -39,6 +51,38 @@ public with sharing class LWCDatatableWrapper {
         return columns;
     }
 
+    @AuraEnabled
+    public static DataWrapper initialDataRequest(String objectApiName) {
+        try {
+            DataWrapper dataWrapper = new DataWrapper()
+                    .setColumns(getColumns(objectApiName))
+                    .setData(getData(objectApiName));
+
+            return dataWrapper;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    public class DataWrapper {
+
+        @AuraEnabled
+        public List<SObject> data;
+        @AuraEnabled
+        public List<ColumnWrapper> columns;
+
+        public DataWrapper() {
+        }
+
+        public DataWrapper setData(List<SObject> data) {
+            this.data = data;
+            return this;
+        }
+        public DataWrapper setColumns(List<ColumnWrapper> columns) {
+            this.columns = columns;
+            return this;
+        }
+    }
 
     public class ColumnWrapper {
         @AuraEnabled
@@ -62,5 +106,8 @@ public with sharing class LWCDatatableWrapper {
             this.fieldName = fieldName;
             return this;
         }
+    }
+
+    private class CustomException extends Exception {
     }
 }

@@ -1,14 +1,28 @@
 <template>
-	<h1>Title</h1>
-	<c-lwc-datatable-header
-		onfilterapply={handleFilterApply}
-		onsearchkeychange={handleSearchKeyChange}
-	></c-lwc-datatable-header>
-	<c-lwc-datatable
-		key-field="id"
-		data={dataToDisplay}
-		columns={columnsToDisplay}>
-	></c-lwc-datatable>
-	<c-lwc-datatable-footer>
-	</c-lwc-datatable-footer>
+	<template lwc:if={isLoaded}>
+		<h1>Title</h1>
+		<c-lwc-datatable-header
+			onfilterapply={handleFilterApply}
+			onsearchkeychange={handleSearchKeyChange}
+		></c-lwc-datatable-header>
+
+		<c-illustration illustration="setup"></c-illustration>
+
+		<!--	<template>-->
+		<!--		<c-lwc-datatable-->
+		<!--			key-field="id"-->
+		<!--			data={dataToDisplay}-->
+		<!--			columns={columnsToDisplay}-->
+		<!--			onloadmore={handleLoadMore}-->
+		<!--			enable-infinite-loading>-->
+		<!--			></c-lwc-datatable>-->
+		<!--	</template >-->
+		<c-lwc-datatable-footer>
+		</c-lwc-datatable-footer>
+	</template>
+	<template lwc:else>
+		<div class="exampleHolder">
+			<lightning-spinner alternative-text="Loading" size="xx-small"></lightning-spinner>
+		</div>
+	</template>
 </template>

@@ -8,5 +8,11 @@
         <target>lightning__AppPage</target>
         <target>lightning__HomePage</target>
     </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage,lightning__AppPage,lightning__HomePage">
+            <property name="c__objectApiName" type="String" label="Primary Object API Name"/>
+            <property name="objectApiName" type="String"/>
+        </targetConfig>
+    </targetConfigs>
     <masterLabel>Lwc Datatable Wrapper</masterLabel>
 </LightningComponentBundle>
