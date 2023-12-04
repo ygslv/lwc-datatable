@@ -13,6 +13,8 @@ export default class LwcDatatableWrapper extends LightningElement {
         this._objectApiName = value;
     }
 
+    @api illustration = 'fishingDeals';
+    message = {header: "", paragraph: 'SOME PARAGRAPH'}
     isLoaded = false;
 
 
