@@ -1,8 +1,14 @@
 import {LightningElement, track, api, wire} from 'lwc';
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
 
-import initialDataRequest from "@salesforce/apex/LWCDatatableWrapper.initialDataRequest";
+import initialDataRequest from "@salesforce/apex/LWCDatatableWrapper.getData";
+import requestData from "@salesforce/apex/LWCDatatableWrapper.getData";
+
+const LIMIT = 10;
 
 export default class LwcDatatableWrapper extends LightningElement {
+
+    isLoading = true;
 
     @api c__objectApiName;
     @api
@@ -15,30 +21,33 @@ export default class LwcDatatableWrapper extends LightningElement {
 
     @api illustration = 'fishingDeals';
     message = {header: "", paragraph: 'SOME PARAGRAPH'}
-    isLoaded = false;
 
+    requestParams = {}
 
-    columns;
+    @track columns;
     @track data;
 
     connectedCallback() {
-        this.initialDataRequest();
+        this.setupDefaultRequestParams();
+        this.handleInitialLoad();
     }
 
-    initialDataRequest() {
-        if (!this.objectApiName) return
-        const params = {objectApiName: this.objectApiName}
-        initialDataRequest(params)
-            .then((response) => {
-                const {data, columns} = response;
-                this.data = data;
-                this.columns = columns;
-                this.isLoaded = true;
-            })
-            .catch((error) => {
-                console.error(error);
-            })
+    setupDefaultRequestParams() {
+        const getLastRecordId = () => {
+            return this.data && this.data[this.data.length-1]?.Id
+        }
+        const getColumns = () => {
+            return this.columns || [];
+        }
+
+        this.requestParams = {
+            objectApiName: this.objectApiName,
+            limitRowsPerRequest: LIMIT,
+            get columns() { return getColumns() },
+            get lastRecordId() { return getLastRecordId() }
+        }
     }
+
 
     // ====== Getters ====== //
 
@@ -56,5 +65,44 @@ export default class LwcDatatableWrapper extends LightningElement {
 
     handleExportButtonClick(event) {}
 
-    handleLoadMore(event) {}
+    handleInitialLoad() {
+        if (!this.objectApiName) return
+
+        const callbackFn = (response) => {
+            const {data, columns}  = response;
+            this.data = data;
+            this.columns = columns;
+            this.isLoading = false;
+        }
+
+        this.requestData(callbackFn);
+    }
+
+    handleLoadMore({target}) {
+        if (target) target.isLoading = true;
+
+        const callbackFn = (response) => {
+            const {data} = response
+            this.data = [...this.data, ...data]
+            if (data.length < LIMIT) target.enableInfiniteLoading = false;
+            target.isLoading = false;
+        }
+
+        this.requestData(callbackFn);
+    }
+
+    requestData(callbackFn) {
+        requestData(this.requestParams)
+            .then((response) => callbackFn(response))
+            .catch((error) => {this.showErrorToast(error)})
+    }
+
+    showErrorToast(error) {
+        const evt = new ShowToastEvent({
+            title: 'Title',
+            message: 'Message',
+            variant: 'error',
+        });
+        this.dispatchEvent(evt);
+    }
 }

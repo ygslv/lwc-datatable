@@ -1,28 +1,25 @@
 <template>
-	<template lwc:if={isLoaded}>
-		<h1>Title</h1>
-		<c-lwc-datatable-header
-			onfilterapply={handleFilterApply}
-			onsearchkeychange={handleSearchKeyChange}
-		></c-lwc-datatable-header>
-
-		<c-illustration size="small" illustration={illustration} message={message}></c-illustration>
-
-		<!--	<template>-->
-		<!--		<c-lwc-datatable-->
-		<!--			key-field="id"-->
-		<!--			data={dataToDisplay}-->
-		<!--			columns={columnsToDisplay}-->
-		<!--			onloadmore={handleLoadMore}-->
-		<!--			enable-infinite-loading>-->
-		<!--			></c-lwc-datatable>-->
-		<!--	</template >-->
-		<c-lwc-datatable-footer>
-		</c-lwc-datatable-footer>
-	</template>
-	<template lwc:else>
-		<div class="exampleHolder">
-			<lightning-spinner alternative-text="Loading" size="xx-small"></lightning-spinner>
-		</div>
-	</template>
+	<lightning-card title={objectApiName}>
+		<lightning-button label="New" slot="actions"></lightning-button>
+		<template lwc:if={isLoading}>
+			<lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+		</template>
+		<template lwc:else>
+			<template lwc:if={dataToDisplay}>
+				<div style="height: 200px;">
+					<c-lwc-datatable
+						key-field="id"
+						data={dataToDisplay}
+						columns={columnsToDisplay}
+						onloadmore={handleLoadMore}
+						enable-infinite-loading>
+						></c-lwc-datatable>
+				</div>
+			</template>
+			<template lwc:else>
+				<c-illustration size="small" illustration={illustration} message={message}></c-illustration>
+			</template>
+		</template>
+		<p slot="footer">Card Footer</p>
+	</lightning-card>
 </template>
