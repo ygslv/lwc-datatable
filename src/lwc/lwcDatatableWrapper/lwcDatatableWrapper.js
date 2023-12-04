@@ -1,5 +1,5 @@
 import {LightningElement, track, api, wire} from 'lwc';
-import { ShowToastEvent } from "lightning/platformShowToastEvent";
+import {Toast} from "c/utilities"
 
 import initialDataRequest from "@salesforce/apex/LWCDatatableWrapper.getData";
 import requestData from "@salesforce/apex/LWCDatatableWrapper.getData";
@@ -8,7 +8,7 @@ const LIMIT = 10;
 
 export default class LwcDatatableWrapper extends LightningElement {
 
-    isLoading = true;
+    isLoading = false;
 
     @api c__objectApiName;
     @api
@@ -98,11 +98,12 @@ export default class LwcDatatableWrapper extends LightningElement {
     }
 
     showErrorToast(error) {
-        const evt = new ShowToastEvent({
-            title: 'Title',
-            message: 'Message',
-            variant: 'error',
-        });
-        this.dispatchEvent(evt);
+
+        new Toast(
+            Toast.emptyString,
+            error,
+            Toast.variants.error
+        ).dispatch()
     }
+
 }

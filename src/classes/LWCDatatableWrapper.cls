@@ -23,15 +23,21 @@ public with sharing class LWCDatatableWrapper {
             Integer limitRowsPerRequest
             )
     {
-        DatatableWrapper datatableWrapper = new DatatableWrapper();
-        setDescribes(objectApiName);
-        Boolean isInitial = columns.isEmpty();
-         if (isInitial) {
-             columns = getColumns(objectApiName);
+        try {
+            throw new CustomException();
+//            DatatableWrapper datatableWrapper = new DatatableWrapper();
+//            setDescribes(objectApiName);
+//            Boolean isInitial = columns.isEmpty();
+//            if (isInitial) {
+//                columns = getColumns(objectApiName);
+//            }
+//            List<SObject> data = queryData(objectApiName, lastRecordId, limitRowsPerRequest, isInitial);
+//            datatableWrapper.setColumns(columns).setData(data);
+//            return datatableWrapper;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
         }
-        List<SObject> data = queryData(objectApiName, lastRecordId, limitRowsPerRequest, isInitial);
-        datatableWrapper.setColumns(columns).setData(data);
-        return datatableWrapper;
+
     }
 
     public static List<SObject> queryData(String objectApiName, String lastRecordId, Integer limitRowsPerRequest, Boolean isInitial) {
