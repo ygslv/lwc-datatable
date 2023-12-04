@@ -1,14 +1,11 @@
 import {LightningElement, track, api, wire} from 'lwc';
 import {Toast} from "c/utilities"
 
-import initialDataRequest from "@salesforce/apex/LWCDatatableWrapper.getData";
 import requestData from "@salesforce/apex/LWCDatatableWrapper.getData";
 
 const LIMIT = 10;
 
 export default class LwcDatatableWrapper extends LightningElement {
-
-    isLoading = false;
 
     @api c__objectApiName;
     @api
@@ -20,12 +17,18 @@ export default class LwcDatatableWrapper extends LightningElement {
     }
 
     @api illustration = 'fishingDeals';
-    message = {header: "", paragraph: 'SOME PARAGRAPH'}
+    @api illustrationMessage = {header: "", paragraph: 'SOME PARAGRAPH'}
 
-    requestParams = {}
+    @track columns ;
+    @track data ;
 
-    @track columns;
-    @track data;
+    isLoading = true;
+
+    // ====== Getters ====== //
+
+    get hasData() {
+        this.data && this.data.length > 0
+    }
 
     connectedCallback() {
         this.setupDefaultRequestParams();
@@ -37,7 +40,7 @@ export default class LwcDatatableWrapper extends LightningElement {
             return this.data && this.data[this.data.length-1]?.Id
         }
         const getColumns = () => {
-            return this.columns || [];
+            return this.columns;
         }
 
         this.requestParams = {
@@ -48,15 +51,6 @@ export default class LwcDatatableWrapper extends LightningElement {
         }
     }
 
-
-    // ====== Getters ====== //
-
-    get dataToDisplay() { return this.data}
-
-    get columnsToDisplay() { return this.columns}
-
-    get showDatatable() {return true}
-
     // ====== Handlers ====== //
 
     handleFilterApply(event) {}
@@ -65,20 +59,18 @@ export default class LwcDatatableWrapper extends LightningElement {
 
     handleExportButtonClick(event) {}
 
-    handleInitialLoad() {
-        if (!this.objectApiName) return
-
+    async handleInitialLoad() {
         const callbackFn = (response) => {
             const {data, columns}  = response;
             this.data = data;
             this.columns = columns;
-            this.isLoading = false;
         }
 
-        this.requestData(callbackFn);
+        await this.requestData(callbackFn);
+        this.isLoading = false;
     }
 
-    handleLoadMore({target}) {
+    async handleLoadMore({target}) {
         if (target) target.isLoading = true;
 
         const callbackFn = (response) => {
@@ -88,17 +80,18 @@ export default class LwcDatatableWrapper extends LightningElement {
             target.isLoading = false;
         }
 
-        this.requestData(callbackFn);
+        await this.requestData(callbackFn);
     }
 
-    requestData(callbackFn) {
-        requestData(this.requestParams)
+    async requestData(callbackFn) {
+        await requestData(this.requestParams)
             .then((response) => callbackFn(response))
             .catch((error) => {this.showErrorToast(error)})
     }
 
-    showErrorToast(error) {
+    // ====== Utility ====== //
 
+    showErrorToast(error) {
         new Toast(
             Toast.emptyString,
             error,
