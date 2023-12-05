@@ -17,8 +17,8 @@ public with sharing class LWCDatatableWrapper {
 
     public static void validateDescribes(){
         String errorMessage;
-        if (describeSObjectResult == null) errorMessage = 'No such object in database';
-        else if (fieldSet == null) errorMessage = 'No correct fieldset for your object';
+        if (describeSObjectResult == null) errorMessage = System.Label.ObjectNotFound.replace('{0}', objectApiName);
+        else if (fieldSet == null) errorMessage = System.Label.FieldsetNotFound.replace('{0}', objectApiName);
 
         if (errorMessage != null) throw new CustomException(errorMessage);
     }
@@ -28,36 +28,38 @@ public with sharing class LWCDatatableWrapper {
     @AuraEnabled
     public static DatatableWrapper getData(
             String objectApiName,
-            List<ColumnWrapper> columns,
+            List<String> columns,
             String lastRecordId,
-            Integer limitRowsPerRequest
+            Integer limitRowsPerRequest,
+            Boolean isInitialRequest
             )
     {
         try {
             LWCDatatableWrapper.objectApiName = objectApiName;
             DatatableWrapper datatableWrapper = new DatatableWrapper();
             setDescribes();
-            Boolean isInitial = columns.isEmpty();
-            if (isInitial) {
-                columns = getColumns();
+
+            if (isInitialRequest) {
+                List<ColumnWrapper> wrappedColumns = getColumns();
+                datatableWrapper.setColumns(wrappedColumns);
+
+                for (ColumnWrapper column : wrappedColumns) {
+                    columns.add(column.fieldName);
+                }
             }
-            List<SObject> data = queryData(objectApiName, lastRecordId, limitRowsPerRequest, isInitial);
-            datatableWrapper.setColumns(columns).setData(data);
+
+            List<SObject> data = queryData(objectApiName, lastRecordId, limitRowsPerRequest, isInitialRequest, columns);
+            datatableWrapper.setData(data);
             System.debug(datatableWrapper);
             return datatableWrapper;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
-
     }
 
-    public static List<SObject> queryData(String objectApiName, String lastRecordId, Integer limitRowsPerRequest, Boolean isInitial) {
-        List<String> fieldsToQuery = new List<String>();
-        for (FieldSetMember fsm : fieldSet.fields) {
-            fieldsToQuery.add(fsm.getFieldPath());
-        }
+    public static List<SObject> queryData(String objectApiName, String lastRecordId, Integer limitRowsPerRequest, Boolean isInitial, List<String> fieldsToQuery) {
         String joinedFieldsToQuery = String.join(fieldsToQuery, ', ');
-
+        System.debug(joinedFieldsToQuery);
         String query = '';
 
         if (isInitial) {

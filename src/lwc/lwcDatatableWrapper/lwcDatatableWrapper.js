@@ -3,6 +3,9 @@ import {Toast} from "c/utilities"
 
 import requestData from "@salesforce/apex/LWCDatatableWrapper.getData";
 
+import objectNotFound from "@salesforce/label/c.ObjectNotFound";
+import fieldsetNotFound from "@salesforce/label/c.FieldsetNotFound";
+
 const LIMIT = 10;
 
 export default class LwcDatatableWrapper extends LightningElement {
@@ -17,17 +20,22 @@ export default class LwcDatatableWrapper extends LightningElement {
     }
 
     @api illustration = 'fishingDeals';
-    @api illustrationMessage = {header: "", paragraph: 'SOME PARAGRAPH'}
+    get illustrationMessage() {
+        if (this.objectNotFound) return objectNotFound.replace('{0}', this.objectApiName);
+        if (this.fieldsetNotFound) return fieldsetNotFound.replace('{0}', this.objectApiName);
 
-    @track columns ;
-    @track data ;
+        return 'Unknown Error';
+    }
+
+    @track columns = [];
+    @track data = [];
 
     isLoading = true;
 
     // ====== Getters ====== //
 
     get hasData() {
-        this.data && this.data.length > 0
+        return this.data && this.data.length > 0
     }
 
     connectedCallback() {
@@ -37,15 +45,16 @@ export default class LwcDatatableWrapper extends LightningElement {
 
     setupDefaultRequestParams() {
         const getLastRecordId = () => {
-            return this.data && this.data[this.data.length-1]?.Id
+            return this.data[this.data.length-1]?.Id
         }
         const getColumns = () => {
-            return this.columns;
+            return this.columns.map(({fieldName}) => fieldName);
         }
 
         this.requestParams = {
             objectApiName: this.objectApiName,
             limitRowsPerRequest: LIMIT,
+            isInitialRequest: true,
             get columns() { return getColumns() },
             get lastRecordId() { return getLastRecordId() }
         }
@@ -60,13 +69,20 @@ export default class LwcDatatableWrapper extends LightningElement {
     handleExportButtonClick(event) {}
 
     async handleInitialLoad() {
-        const callbackFn = (response) => {
+        const responseFn = (response) => {
             const {data, columns}  = response;
             this.data = data;
             this.columns = columns;
+            this.requestParams.isInitialRequest = false;
         }
 
-        await this.requestData(callbackFn);
+        const errorFn = (error) => {
+            this.objectNotFound = error.body?.message === objectNotFound.replace('{0}', this.objectApiName);
+            this.fieldsetNotFound = error.body?.message === fieldsetNotFound.replace('{0}', this.objectApiName);
+            this.showErrorToast(error)
+        }
+
+        await this.requestData(responseFn, errorFn);
         this.isLoading = false;
     }
 
@@ -83,10 +99,10 @@ export default class LwcDatatableWrapper extends LightningElement {
         await this.requestData(callbackFn);
     }
 
-    async requestData(callbackFn) {
+    async requestData(responseFn, errorFn = (error) => {this.showErrorToast(error)}) {
         await requestData(this.requestParams)
-            .then((response) => callbackFn(response))
-            .catch((error) => {this.showErrorToast(error)})
+            .then((response) => responseFn(response))
+            .catch((error) => errorFn(error))
     }
 
     // ====== Utility ====== //

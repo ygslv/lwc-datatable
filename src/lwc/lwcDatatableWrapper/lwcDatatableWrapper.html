@@ -4,49 +4,42 @@
 			<lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
 		</template>
 		<template lwc:else>
-			<div slot="title">
-				<div class="c__lightning-card-title">
-					<h1>{objectApiName}</h1>
+			<template if:false={objectNotFound}>
+				<div slot="title">
+					<div class="c__lightning-card-title">
+						<h1>{objectApiName}</h1>
+					</div>
+					<div class="c__lightning-card-search-bar">
+						<lightning-input
+							type="search"
+							onchange={handleSearchKeyChange}
+							value="value"
+							placeholder="placeholder"
+							variant="label-hidden"
+							class="font-weight-normal"
+						>
+						</lightning-input>
+					</div>
 				</div>
-				<div class="c__lightning-card-search-bar">
-					<lightning-input
-						type="search"
-						onchange={handleSearchKeyChange}
-						value="value"
-						placeholder="placeholder"
-						variant="label-hidden"
-						class="font-weight-normal"
-					>
-					</lightning-input>
+				<div slot="actions">
+					<lightning-button label="New"></lightning-button>
 				</div>
-			</div>
-			<div slot="actions">
-				<lightning-button label="New"></lightning-button>
-			</div>
+			</template>
 			<div>
-				<div style="height: 200px;">
-					<c-lwc-datatable
-						key-field="id"
-						data={data}
-						columns={columns}
-						onloadmore={handleLoadMore}
-						enable-infinite-loading>
-						></c-lwc-datatable>
-				</div>
-<!--				<template lwc:if={hasData}>-->
-<!--					<div style="height: 200px;">-->
-<!--						<c-lwc-datatable-->
-<!--							key-field="id"-->
-<!--							data={data}-->
-<!--							columns={columns}-->
-<!--							onloadmore={handleLoadMore}-->
-<!--							enable-infinite-loading>-->
-<!--							></c-lwc-datatable>-->
-<!--					</div>-->
-<!--				</template>-->
-<!--				<template lwc:else>-->
-<!--					<c-illustration size="small" illustration={illustration} message={illustrationMessage}></c-illustration>-->
-<!--				</template>-->
+				<template lwc:if={hasData}>
+					<div style="height: 200px;">
+						<c-lwc-datatable
+							key-field="id"
+							data={data}
+							columns={columns}
+							onloadmore={handleLoadMore}
+							enable-infinite-loading>
+							></c-lwc-datatable>
+					</div>
+				</template>
+				<template lwc:else>
+					<c-illustration size="small" illustration={illustration} message={illustrationMessage}></c-illustration>
+				</template>
 			</div>
 			<div slot="footer">
 				<p>Card Footer</p>
