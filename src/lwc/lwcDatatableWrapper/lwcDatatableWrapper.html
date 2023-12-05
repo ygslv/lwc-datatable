@@ -5,7 +5,7 @@
 		</template>
 		<template lwc:else>
 			<template if:false={objectNotFound}>
-				<div slot="title">
+				<div slot="title" class="c__lightning-card-title">
 					<div class="c__lightning-card-title">
 						<h1>{objectApiName}</h1>
 					</div>
@@ -21,11 +21,14 @@
 						</lightning-input>
 					</div>
 				</div>
-				<div slot="actions">
+				<div slot="actions" class="c__lightning-card-footer">
 					<lightning-button label="New"></lightning-button>
 				</div>
+				<div slot="footer">
+					<p>Card Footer</p>
+				</div>
 			</template>
-			<div>
+			<div class="c__lightning-card-data">
 				<template lwc:if={hasData}>
 					<div style="height: 200px;">
 						<c-lwc-datatable
@@ -34,15 +37,12 @@
 							columns={columns}
 							onloadmore={handleLoadMore}
 							enable-infinite-loading>
-							></c-lwc-datatable>
+						></c-lwc-datatable>
 					</div>
 				</template>
 				<template lwc:else>
 					<c-illustration size="small" illustration={illustration} message={illustrationMessage}></c-illustration>
 				</template>
-			</div>
-			<div slot="footer">
-				<p>Card Footer</p>
 			</div>
 		</template>
 	</lightning-card>

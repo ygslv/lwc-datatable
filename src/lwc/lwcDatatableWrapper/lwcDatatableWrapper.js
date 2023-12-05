@@ -114,5 +114,4 @@ export default class LwcDatatableWrapper extends LightningElement {
             Toast.variants.error
         ).dispatch()
     }
-
 }
