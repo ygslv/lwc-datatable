@@ -1,16 +1,26 @@
 // Rename to DatatableController
 public with sharing class LWCDatatableWrapper {
 
-    public static String objectApiName;
+    private static String objectApiName;
 
-    public static Map<String, SObjectType> globalDescribeMap;
-    public static DescribeSObjectResult describeSObjectResult;
-    public static Map<String, FieldSet> fieldSetMap;
+    private static Map<String, SObjectType> globalDescribeMap;
+    private static DescribeSObjectResult describeSObjectResult;
+    private static FieldSet fieldSet;
 
-    public static void setDescribes(String objectApiName) {
+    public static void setDescribes() {
         globalDescribeMap = Schema.getGlobalDescribe();
-        describeSObjectResult = globalDescribeMap.get(objectApiName).getDescribe();
-        fieldSetMap = describeSObjectResult.fieldSets.getMap();
+        describeSObjectResult = globalDescribeMap.get(objectApiName)?.getDescribe();
+        fieldSet = describeSObjectResult?.fieldSets.getMap().get(FIELDSET_NAME_PATTERN.replace('{0}',  objectApiName.replace('__c', '')));
+
+        validateDescribes();
+    }
+
+    public static void validateDescribes(){
+        String errorMessage;
+        if (describeSObjectResult == null) errorMessage = System.Label.ObjectNotFound.replace('{0}', objectApiName);
+        else if (fieldSet == null) errorMessage = System.Label.FieldsetNotFound.replace('{0}', objectApiName);
+
+        if (errorMessage != null) throw new CustomException(errorMessage);
     }
 
     public final static String FIELDSET_NAME_PATTERN = 'LWCDatatable{0}List';
@@ -18,37 +28,38 @@ public with sharing class LWCDatatableWrapper {
     @AuraEnabled
     public static DatatableWrapper getData(
             String objectApiName,
-            List<ColumnWrapper> columns,
+            List<String> columns,
             String lastRecordId,
-            Integer limitRowsPerRequest
+            Integer limitRowsPerRequest,
+            Boolean isInitialRequest
             )
     {
         try {
-            throw new CustomException();
-//            DatatableWrapper datatableWrapper = new DatatableWrapper();
-//            setDescribes(objectApiName);
-//            Boolean isInitial = columns.isEmpty();
-//            if (isInitial) {
-//                columns = getColumns(objectApiName);
-//            }
-//            List<SObject> data = queryData(objectApiName, lastRecordId, limitRowsPerRequest, isInitial);
-//            datatableWrapper.setColumns(columns).setData(data);
-//            return datatableWrapper;
+            LWCDatatableWrapper.objectApiName = objectApiName;
+            DatatableWrapper datatableWrapper = new DatatableWrapper();
+            setDescribes();
+
+            if (isInitialRequest) {
+                List<ColumnWrapper> wrappedColumns = getColumns();
+                datatableWrapper.setColumns(wrappedColumns);
+
+                for (ColumnWrapper column : wrappedColumns) {
+                    columns.add(column.fieldName);
+                }
+            }
+
+            List<SObject> data = queryData(objectApiName, lastRecordId, limitRowsPerRequest, isInitialRequest, columns);
+            datatableWrapper.setData(data);
+            System.debug(datatableWrapper);
+            return datatableWrapper;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
-
     }
 
-    public static List<SObject> queryData(String objectApiName, String lastRecordId, Integer limitRowsPerRequest, Boolean isInitial) {
-        Schema.FieldSet fieldSet = fieldSetMap.get(FIELDSET_NAME_PATTERN.replace('{0}',  objectApiName.replace('__c', '')));
-
-        List<String> fieldsToQuery = new List<String>();
-        for (FieldSetMember fsm : fieldSet.fields) {
-            fieldsToQuery.add(fsm.getFieldPath());
-        }
+    public static List<SObject> queryData(String objectApiName, String lastRecordId, Integer limitRowsPerRequest, Boolean isInitial, List<String> fieldsToQuery) {
         String joinedFieldsToQuery = String.join(fieldsToQuery, ', ');
-
+        System.debug(joinedFieldsToQuery);
         String query = '';
 
         if (isInitial) {
@@ -65,67 +76,13 @@ public with sharing class LWCDatatableWrapper {
         return Database.query(query);
     }
 
-
-    public static List<SObject> getData(String objectApiName, String lastRecordId) {
-
-        Map<String, Schema.SObjectType> GlobalDescribeMap = Schema.getGlobalDescribe();
-        Schema.SObjectType SObjectTypeObj = GlobalDescribeMap.get(objectApiName);
-        Schema.DescribeSObjectResult DescribeSObjectResultObj = SObjectTypeObj.getDescribe();
-        Schema.FieldSet fieldSetObj = DescribeSObjectResultObj.fieldSets.getMap().get(getFieldSetName(objectApiName));
-
-        List<String> fieldsToQuery = new List<String>();
-        for (FieldSetMember fsm : fieldSetObj.fields) {
-            fieldsToQuery.add(fsm.getFieldPath());
-        }
-
-
-        String queryTemplate = 'SELECT {0} FROM {1} WHERE {2} LIMIT {3}';
-        String query = String.format(
-                queryTemplate, new List<String>{String.join(fieldsToQuery, ', '), objectApiName, 'Id > :lastRecordId', '10'});
-        return Database.query(query);
-    }
-
-    public static String getFieldSetName (String objectApiName) {
-        try {
-            objectApiName = objectApiName.replace('__c', '');
-            final String fieldSetName = 'LWCDatatable'+objectApiName+'List';
-
-            Map<String, Schema.SObjectType> GlobalDescribeMap = Schema.getGlobalDescribe();
-            Schema.SObjectType SObjectTypeObj = GlobalDescribeMap.get(objectApiName);
-            Schema.DescribeSObjectResult DescribeSObjectResultObj = SObjectTypeObj.getDescribe();
-            Schema.FieldSet fieldSetObj = DescribeSObjectResultObj.fieldSets.getMap().get(fieldSetName);
-
-            if (fieldSetObj == null) {
-                throw new CustomException('No fieldset for ' + objectApiName + ' created (format LWCDatatable{objectApiName}List');
-            }
-            return fieldSetName;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
-    }
-
-    public static List<ColumnWrapper> getColumns(String objectApiName) {
-        Schema.FieldSet fieldSet = fieldSetMap.get(FIELDSET_NAME_PATTERN.replace('{0}',  objectApiName.replace('__c', '')));
-
+    public static List<ColumnWrapper> getColumns() {
         List<ColumnWrapper> columns = new List<ColumnWrapper>();
         for (FieldSetMember fsm : fieldSet.fields) {
             columns.add(new ColumnWrapper(fsm.label, fsm.fieldPath));
         }
 
         return columns;
-    }
-
-    @AuraEnabled
-    public static DataWrapper initialDataRequest(String objectApiName, Integer lim, String lastItemId) {
-        try {
-            DataWrapper dataWrapper = new DataWrapper()
-                    .setColumns(getColumns(objectApiName))
-                    .setData(getData(objectApiName, lastItemId));
-
-            return dataWrapper;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
     }
 
     public class DatatableWrapper {
@@ -148,26 +105,6 @@ public with sharing class LWCDatatableWrapper {
             return this;
         }
         public DatatableWrapper setColumns(List<ColumnWrapper> columns) {
-            this.columns = columns;
-            return this;
-        }
-    }
-
-    public class DataWrapper {
-
-        @AuraEnabled
-        public List<SObject> data;
-        @AuraEnabled
-        public List<ColumnWrapper> columns;
-
-        public DataWrapper() {
-        }
-
-        public DataWrapper setData(List<SObject> data) {
-            this.data = data;
-            return this;
-        }
-        public DataWrapper setColumns(List<ColumnWrapper> columns) {
             this.columns = columns;
             return this;
         }
