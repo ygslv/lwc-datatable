@@ -1,5 +1,5 @@
 import {LightningElement, track, api, wire} from 'lwc';
-import {Toast} from "c/utilities"
+import {Toast, debounce} from "c/utilities"
 
 import requestData from "@salesforce/apex/LWCDatatableWrapper.getData";
 
@@ -25,6 +25,11 @@ export default class LwcDatatableWrapper extends LightningElement {
         if (this.fieldsetNotFound) return fieldsetNotFound.replace('{0}', this.objectApiName);
 
         return 'Unknown Error';
+    }
+
+    @track search = {
+        value: '',
+        placeholder: 'Type to search'
     }
 
     @track columns = [];
@@ -64,7 +69,13 @@ export default class LwcDatatableWrapper extends LightningElement {
 
     handleFilterApply(event) {}
 
-    handleSearchKeyChange(event) {}
+    handleSearchKeyChange(event) {
+        this.search.value = this.requestParams.searchValue = event.detail.value
+        this.requestParams.isInitialRequest = true;
+        this.debouncedInitialLoad();
+    }
+
+    debouncedInitialLoad = debounce(() => this.handleInitialLoad());
 
     handleExportButtonClick(event) {}
 
