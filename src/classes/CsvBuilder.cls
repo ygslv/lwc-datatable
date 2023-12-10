@@ -1,13 +1,43 @@
-public with sharing class CsvBuilder {
+public with sharing class CsvBuilder implements IBuilder{
 
-    List<String> data;
-    List<String> headers;
-    String title;
+    List<List<String>> data;
+    List<String> columns;
+    String objectApiName;
 
-    public CsvBuilder(List<String> data, List<String> headers, String title) {
+    public void build() {
+        String headerRow = String.join(this.columns,',') + '\n';
+        String dataStr = headerRow;
+
+        Integer rowIdx = 0;
+        Integer rowListSize = this.data.size();
+
+        for(List<String> row : this.data){
+            rowIdx++;
+
+            String concatRow = String.join(row, ',');
+            dataStr += concatRow + ((rowIdx != rowListSize) ? '\n' : '');
+        }
+        String titleTemplate = '{2} Export {0} ({1}).{2}';
+        String title = String.format(titleTemplate, new List<String>{this.objectApiName, Datetime.now().format(), 'csv'});
+        createFile(dataStr, title);
+    }
+
+    public CsvBuilder setColumns(List<String> columns) {
+        this.columns = columns;
+        return this;
+    }
+
+    public CsvBuilder setData(List<List<String>> data) {
         this.data = data;
-        this.headers = headers;
-        this.title = title;
+        return this;
+    }
+
+    public CsvBuilder setObjectName(String objectApiName) {
+        this.objectApiName = objectApiName;
+        return this;
+    }
+
+    public CsvBuilder() {
     }
 
     public void createFile(String versionData, String title) {
@@ -17,20 +47,5 @@ public with sharing class CsvBuilder {
         cv.PathOnClient = title; // full path within Salesforce this can just be the name of file to be in the library
         cv.VersionData = Blob.valueOf(versionData); //file data
         insert cv;
-    }
-
-    public void createCSV(){
-        String headerRow = String.join(this.headers,',') + '\n';
-        String dataStr = headerRow;
-
-        Integer i = 0;
-        Integer rowListSize = this.data.size();
-
-        for(String row :this.data){
-            i++;
-            dataStr += (String)row + ((i != rowListSize) ? '\n' : '');
-        }
-        this.title += ' - ' + Datetime.now().format() + '.csv';
-        createFile(dataStr, this.title);
     }
 }
