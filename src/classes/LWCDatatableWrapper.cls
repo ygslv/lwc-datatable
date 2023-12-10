@@ -39,6 +39,7 @@ public with sharing class LWCDatatableWrapper {
             LWCDatatableWrapper.objectApiName = objectApiName;
             DatatableWrapper datatableWrapper = new DatatableWrapper();
             setDescribes();
+
             if (isInitialRequest) {
 
                 List<ColumnWrapper> wrappedColumns = getColumns();
