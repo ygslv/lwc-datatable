@@ -58,6 +58,27 @@ public with sharing class LWCDatatableWrapper {
         }
     }
 
+    @AuraEnabled
+    public static Boolean exportData(String objectApiName) {
+        try {
+            LWCDatatableWrapper.objectApiName = objectApiName;
+            setDescribes();
+            List<ColumnWrapper> wrappedColumns = getColumns();
+            List<String> columns = new List<String>{};
+            for (ColumnWrapper column : wrappedColumns) {
+                columns.add(column.fieldName);
+            }
+            CsvBuilder builder = new CsvBuilder().setColumns(columns).setObjectName(objectApiName);
+            String query = new QueryBuilder(objectApiName).selectFields(columns).toString();
+            ExportBatch exportBatch = new ExportBatch(builder).setColumns(columns).setQuery(query);
+            Database.executeBatch(exportBatch);
+
+            return true;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
     public static List<SObject> queryData(String objectApiName, String lastRecordId, Integer lim, Boolean isInitial, List<String> fieldsToQuery, String searchValue) {
         QueryBuilder queryBuilder = new QueryBuilder(objectApiName);
         QueryBuilder.QueryCondition queryCondition = new QueryBuilder.QueryCondition();

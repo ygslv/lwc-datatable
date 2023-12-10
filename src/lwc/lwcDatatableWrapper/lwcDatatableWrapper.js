@@ -2,6 +2,7 @@ import {LightningElement, track, api, wire} from 'lwc';
 import {Toast, debounce} from "c/utilities"
 
 import requestData from "@salesforce/apex/LWCDatatableWrapper.getData";
+import exportData from "@salesforce/apex/LWCDatatableWrapper.exportData";
 
 import objectNotFound from "@salesforce/label/c.ObjectNotFound";
 import fieldsetNotFound from "@salesforce/label/c.FieldsetNotFound";
@@ -77,7 +78,14 @@ export default class LwcDatatableWrapper extends LightningElement {
 
     debouncedInitialLoad = debounce(() => this.handleInitialLoad());
 
-    handleExportButtonClick(event) {}
+    handleExportButtonClick(event) {
+        const params = {objectApiName: this.objectApiName}
+        exportData(params)
+            .then((data) => {
+                this.showSuccessToast('SUKKES')
+            })
+            .catch((error) => this.showErrorToast(error))
+    }
 
     async handleInitialLoad() {
         const responseFn = (response) => {
@@ -117,6 +125,14 @@ export default class LwcDatatableWrapper extends LightningElement {
     }
 
     // ====== Utility ====== //
+
+    showSuccessToast(Message) {
+        new Toast(
+            Toast.emptyString,
+            Message,
+            Toast.variants.success
+        ).dispatch()
+    }
 
     showErrorToast(error) {
         new Toast(
