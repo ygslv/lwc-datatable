@@ -126,6 +126,14 @@ export default class LwcDatatableWrapper extends LightningElement {
 
     // ====== Utility ====== //
 
+    showSuccessToast(message) {
+        new Toast(
+            Toast.emptyString,
+            message,
+            Toast.variants.success
+        ).dispatch()
+    }
+
     showErrorToast(error) {
         new Toast(
             Toast.emptyString,
