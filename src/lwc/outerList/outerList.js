@@ -1,9 +1,3 @@
-import {LightningElement} from 'lwc';
+import { LightningElement } from "lwc";
 
-export default class OuterList extends LightningElement {
-
-
-
-
-
-}
+export default class OuterList extends LightningElement {}

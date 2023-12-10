@@ -1,5 +1,3 @@
-import {LightningElement} from 'lwc';
+import { LightningElement } from "lwc";
 
-export default class LwcDatatableHeader extends LightningElement {
-
-}
+export default class LwcDatatableHeader extends LightningElement {}
