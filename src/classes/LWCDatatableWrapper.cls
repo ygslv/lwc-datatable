@@ -31,8 +31,9 @@ public with sharing class LWCDatatableWrapper {
             List<String> columns,
             String lastRecordId,
             Integer limitRowsPerRequest,
-            Boolean isInitialRequest
-            )
+            Boolean isInitialRequest,
+            String searchValue
+    )
     {
         try {
             LWCDatatableWrapper.objectApiName = objectApiName;
@@ -40,15 +41,16 @@ public with sharing class LWCDatatableWrapper {
             setDescribes();
 
             if (isInitialRequest) {
+
                 List<ColumnWrapper> wrappedColumns = getColumns();
                 datatableWrapper.setColumns(wrappedColumns);
-
+                columns.clear();
                 for (ColumnWrapper column : wrappedColumns) {
                     columns.add(column.fieldName);
                 }
             }
 
-            List<SObject> data = queryData(objectApiName, lastRecordId, limitRowsPerRequest, isInitialRequest, columns);
+            List<SObject> data = queryData(objectApiName, lastRecordId, limitRowsPerRequest, isInitialRequest, columns, searchValue);
             datatableWrapper.setData(data);
             System.debug(datatableWrapper);
             return datatableWrapper;
@@ -57,22 +59,68 @@ public with sharing class LWCDatatableWrapper {
         }
     }
 
-    public static List<SObject> queryData(String objectApiName, String lastRecordId, Integer limitRowsPerRequest, Boolean isInitial, List<String> fieldsToQuery) {
-        String joinedFieldsToQuery = String.join(fieldsToQuery, ', ');
-        System.debug(joinedFieldsToQuery);
-        String query = '';
+    @AuraEnabled
+    public static Boolean exportData(String objectApiName) {
+        try {
+            LWCDatatableWrapper.objectApiName = objectApiName;
+            setDescribes();
+            List<ColumnWrapper> wrappedColumns = getColumns();
+            List<String> columns = new List<String>{};
+            for (ColumnWrapper column : wrappedColumns) {
+                columns.add(column.fieldName);
+            }
+            CsvBuilder builder = new CsvBuilder().setColumns(columns).setObjectName(objectApiName);
+            String query = new QueryBuilder(objectApiName).selectFields(columns).toString();
+            ExportBatch exportBatch = new ExportBatch(builder).setColumns(columns).setQuery(query);
+            Database.executeBatch(exportBatch);
 
-        if (isInitial) {
-            String queryTemplate = 'SELECT {0} FROM ' + objectApiName + ' LIMIT ' + limitRowsPerRequest;
-            query = String.format(
-                    queryTemplate, new List<String>{joinedFieldsToQuery});
-
-        } else {
-            String queryTemplate = 'SELECT {0} FROM ' + objectApiName + ' WHERE {1} LIMIT ' + limitRowsPerRequest;
-            query = String.format(
-                    queryTemplate, new List<String>{joinedFieldsToQuery, 'Id > :lastRecordId'});
+            return true;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
         }
-        System.debug('query: ' + query);
+    }
+
+    public static List<SObject> queryData(String objectApiName, String lastRecordId, Integer lim, Boolean isInitial, List<String> fieldsToQuery, String searchValue) {
+        QueryBuilder queryBuilder = new QueryBuilder(objectApiName);
+        QueryBuilder.QueryCondition queryCondition = new QueryBuilder.QueryCondition();
+        QueryBuilder.QueryCondition searchCondition;
+
+        if (searchValue != '' && searchValue != null) {
+            searchCondition = new QueryBuilder.QueryCondition();
+            Boolean firstIn = true;
+            for (FieldSetMember fsm : fieldSet.getFields()) {
+                QueryBuilder.QueryCondition condition = new QueryBuilder.QueryCondition();
+                // PICKLIST
+                switch on String.valueOf(fsm.type) {
+                    when 'REFERENCE', 'ID' {
+                        if (searchValue.length() == 18) condition.equals(fsm.fieldPath, searchValue);
+                    }
+                    when 'STRING' {
+                        condition.isLike(fsm.fieldPath, '%'+searchValue+'%');
+                    }
+                }
+                if (condition.isEmpty()) continue;
+                if (firstIn) {
+                    searchCondition = condition;
+                    firstIn = false;
+                    continue;
+                }
+                searchCondition.orCondition(condition);
+            }
+        }
+        if (!isInitial) queryCondition.greaterThan('Id', lastRecordId);
+        if (!isInitial && searchCondition != null) {
+            queryCondition.andGroup(searchCondition);
+        }
+        if (isInitial && searchCondition != null) {
+            queryCondition = searchCondition;
+        }
+
+        String query = queryBuilder
+                .selectFields(fieldsToQuery)
+                .whereClause(queryCondition)
+                .take(lim)
+                .toString();
         return Database.query(query);
     }
 

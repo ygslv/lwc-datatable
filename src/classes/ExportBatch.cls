@@ -1,7 +1,7 @@
 public with sharing class ExportBatch implements Database.Batchable<SObject>, Database.Stateful {
     IBuilder builder;
 
-    List<List<String>> data;
+    List<List<String>> data = new List<List<String>>{};
     List<String> columns;
     String query;
 

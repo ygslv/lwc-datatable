@@ -13,10 +13,9 @@
 						<lightning-input
 							type="search"
 							onchange={handleSearchKeyChange}
-							value="value"
-							placeholder="placeholder"
+							value={search.value}
+							placeholder={search.placeholder}
 							variant="label-hidden"
-							class="font-weight-normal"
 						>
 						</lightning-input>
 					</div>
@@ -25,7 +24,7 @@
 					<lightning-button label="New"></lightning-button>
 				</div>
 				<div slot="footer">
-					<p>Card Footer</p>
+					<lightning-button variant="base" label="Export to CSV" title="Export to CSV" onclick={handleExportButtonClick} class="slds-m-left_x-small"></lightning-button>
 				</div>
 			</template>
 			<div class="c__lightning-card-data">
